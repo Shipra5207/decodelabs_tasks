@@ -1,73 +1,57 @@
 const express = require("express");
 const app = express();
 
+const connectDB = require("./config/db");
+
+connectDB();
+
 app.use(express.json());
 
-let students = [
-  {
-    id: 1,
-    name: "Shipra",
-    course: "BTech"
-  }
-];
+const Student = require("./models/Student");
 
 // GET API
-app.get("/students", (req, res) => {
+app.get("/students", async (req, res) => {
+  const students = await Student.find();
   res.json(students);
 });
 
 // POST API
-app.post("/students", (req, res) => {
+app.post("/students", async (req, res) => {
   const { name, course } = req.body;
 
-  if (!name || !course) {
-    return res.status(400).json({
-      message: "Name and Course are required"
-    });
-  }
-
-  const newStudent = {
-    id: students.length + 1,
+  const student = new Student({
     name,
     course
-  };
+  });
 
-  students.push(newStudent);
+  await student.save();
 
-  res.status(201).json(newStudent);
+  res.status(201).json(student);
 });
 
 //  PUT API
-app.put("/students/:id", (req, res) => {
-  const id = parseInt(req.params.id);
+app.put("/students/:id", async (req, res) => {
+  const student = await Student.findByIdAndUpdate(
+    req.params.id,
+    req.body,
+    { new: true }
+  );
 
-  const student = students.find(s => s.id === id);
-
-  if (!student) {
-    return res.status(404).json({
-      message: "Student not found"
-    });
-  }
-
-  student.name = req.body.name || student.name;
-  student.course = req.body.course || student.course;
-
-  res.json({
-    message: "Student Updated",
-    student
-  });
+  res.json(student);
 });
 
  //DELETE API
- app.delete("/students/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-
-  students = students.filter(s => s.id !== id);
+ app.delete("/students/:id", async (req, res) => {
+  await Student.findByIdAndDelete(req.params.id);
 
   res.json({
     message: "Student Deleted"
   });
 });
+
+const userRoutes =require("./routes/userRoutes");
+
+app.use("/user", userRoutes);
 
 app.listen(3000, () => {
   console.log("Server running on port 3000");
